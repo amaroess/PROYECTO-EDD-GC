@@ -3,5 +3,6 @@
 
 int main()
 {
-    return 0;
+    puts("BIENVENIDO A TU GESTOR DE CONTRASEÑAS");
+    return 0;   
 }
