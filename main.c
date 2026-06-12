@@ -12,7 +12,24 @@ typedef struct Contrasena // hecho por amaro, el 11/06/2024
     char pagina[20]; // página o servicio al que corresponde la contraseña.
 } Contrasena;
 
-
+void EliminarUsuario(List* listaUsuario) // hecho por amaro, el 11/06/2024
+{
+    char UsuarioE[20]; // variable para guardar el nombre del usuario a eliminar
+    printf("Usuario a Eliminar: ");
+    scanf("%20s", UsuarioE); // se lee el nombre del usuario a eliminar
+    Usuario* usuarioAEliminar = list_first(listaUsuario); // se obtiene el primer usuario de la lista
+    while (usuarioAEliminar != NULL) // se recorre la lista de usuarios hasta encontrar el usuario a eliminar
+    {
+        if (strcmp(usuarioAEliminar->usuario, UsuarioE) == 0) // se compara el nombre del usuario a eliminar con el nombre del usuario actual de la lista
+        {
+            list_popCurrent(listaUsuario); // se elimina el usuario de la lista
+            printf("Usuario eliminado exitosamente.\n");
+            return; // se termina la función después de eliminar el usuario
+        }
+        usuarioAEliminar = list_next(listaUsuario); // se avanza en la lista
+    }
+    printf("Usuario no encontrado.\n");
+}
 
 int main()
 {
@@ -20,7 +37,7 @@ int main()
     return 0;
     // struct Usuario (usuario, contrasena), struct contrasena (contrasena cifrada, pagina) *---
     // void CrearUsuario(List* listaUsuario) *---
-    // void EliinarUsuario(List* listaUsuario) *---
+    // void EliminarUsuario(List* listaUsuario) *---
     // void IniciarSesion(List* listaUsuario) *---
     // void CerrarSesion() *---
     // char encriptar(char str) *---
