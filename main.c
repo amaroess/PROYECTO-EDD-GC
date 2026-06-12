@@ -31,7 +31,7 @@ void EliminarUsuario(List* listaUsuario) // hecho por amaro, el 11/06/2024
     printf("Usuario no encontrado.\n");
 }
 
-void AgregarPassword(List* ListaPassword)
+void AgregarPassword(List* ListaPassword) // hecho por amaro, el 11/06/2024
 {
     printf("Contraseña a agregar: ");
     char contrasena[21]; // variable para guardar la contraseña a agregar
@@ -45,6 +45,18 @@ void AgregarPassword(List* ListaPassword)
     nuevaContrasena->contrasenaCifrada = contrasenaFinal; // se asigna la contraseña cifrada a la nueva contraseña, funcion encriptar deberia reservar la memoria.
     strcpy(nuevaContrasena->pagina, pagina); //  se asigna la página o servicio a la nueva contraseña
     list_pushBack(ListaPassword, nuevaContrasena); // se agrega la nueva contraseña a la lista de contraseñas
+}
+void CerrarSesion() // hecho por amaro, el 11/06/2024
+{
+    char opcion;
+    printf("Estas seguro de cerrar sesion? (s/n):  "); // se pregunta al usuario si está seguro de cerrar sesión 's' para sí, 'n' para no.
+    scanf("%c", &opcion); // se escanea opcion 
+    if (opcion == 's' || opcion == 'S')
+    {
+        printf("Sesion cerrada exitosamente.\n");
+        exit(0); // se cierra el programa
+    }
+    return; // se regresa al menú principal si el usuario no quiere cerrar sesión
 }
 
 int main()
