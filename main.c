@@ -1,7 +1,19 @@
 #include <stdio.h>
 #include "tdas/list.h" // TDA LISTA
 #include "tdas/map.h" // TDA MAPA
-#include "d"
+typedef struct Usuario // hecho por amaro, el 11/06/2024
+{
+    char usuario[20]; // nombre de usuario
+    char contrasena[20]; // contraseña del usuario
+} Usuario;
+typedef struct Contrasena // hecho por amaro, el 11/06/2024
+{
+    char contrasenaCifrada[50]; // contraseña cifrada
+    char pagina[20]; // página o servicio al que corresponde la contraseña
+} Contrasena;
+
+
+
 int main()
 {
     puts("-----BIENVENIDO A TU GESTOR DE CONTRASEÑAS-----\n");
