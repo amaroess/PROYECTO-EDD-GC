@@ -9,7 +9,7 @@ typedef struct Usuario // hecho por amaro, el 11/06/2024
 typedef struct Contrasena // hecho por amaro, el 11/06/2024
 {
     char contrasenaCifrada[50]; // contraseña cifrada
-    char pagina[20]; // página o servicio al que corresponde la contraseña
+    char pagina[20]; // página o servicio al que corresponde la contraseña.
 } Contrasena;
 
 
