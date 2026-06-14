@@ -1,6 +1,7 @@
 #include <stdio.h>
 #include "tdas/list.h" // TDA LISTA
 #include "tdas/map.h" // TDA MAPA
+#include "tdas/extra.h"
 
 typedef struct Usuario // hecho por amaro, el 11/06/2024
 {
