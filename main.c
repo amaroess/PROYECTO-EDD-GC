@@ -14,6 +14,35 @@ typedef struct Contrasena // hecho por amaro, el 11/06/2024
     char* pagina; // página o servicio al que corresponde la contraseña.
 } Contrasena;
 
+void crearUsuario(List* listaUsuario, Map* mapa){
+    char nombre[50];
+    char clave[50];
+
+    printf("Ingrese su nombre de usuario: ");
+    scanf("%49s", nombre);
+
+    MapPair* usuario_existente = map_search(mapa, nombre);
+    if(usuario_existente != NULL){
+        printf("El usuario %s ya está registrado\n");
+        return;
+    }
+
+    printf("Ingrese su contraseña maestra: ");
+    scanf("%49s", clave);
+
+    Usuario* nuevoUsuario = malloc(sizeof(Usuario));
+    if(nuevoUsuario == NULL) return;
+    
+    nuevoUsuario->usuario = strdup(nombre);
+    nuevoUsuario->contrasena = strdup(clave);
+    list_pushBack(listaUsuario, nuevoUsuario);
+    List* listaPassword = list_create();
+    map_insert(mapa, nuevoUsuario->usuario, listaPassword);
+    printf("Usuario registrado correctamente\n");
+    
+}
+
+
 void EliminarUsuario(List* listaUsuario) // hecho por amaro, el 11/06/2024
 {
     char UsuarioE[21]; // variable para guardar el nombre del usuario a eliminar, 21 caracteres una cantidad aceptable.
