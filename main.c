@@ -1,6 +1,7 @@
 #include <stdio.h>
 #include "tdas/list.h" // TDA LISTA
 #include "tdas/map.h" // TDA MAPA
+
 typedef struct Usuario // hecho por amaro, el 11/06/2024
 {
     char* usuario; // nombre de usuario
@@ -58,6 +59,54 @@ void CerrarSesion() // hecho por amaro, el 11/06/2024
     }
     return; // se regresa al menú principal si el usuario no quiere cerrar sesión
 }
+void LeerArchivo(List* listaUsuario, Map* mapa){
+
+    FILE *archivo = fopen("archivo.txt", "r");
+    if(archivo == NULL){
+        printf("No se encontró el archivo.");
+        return;
+    }
+
+    char** campos;
+    while((campos = leer_linea_csv(archivo, ",")) != NULL){
+        if(campos[0] == NULL || campos[1] == NULL) continue; // Si la linea no tiene al usuario o la clave maestra, se salta
+
+        char* usuario = campos[0];
+        char* clave_maestra = campos[1];
+        char* pagina_servicio = campos[2];
+        char* clave_cifrada = campos[3];
+
+        List* listaPassword = NULL;
+        MapPair* parUsuario = map_search(mapa, usuario);
+        if(parUsuario != NULL){
+            listaPassword = parUsuario->value;
+        }
+        if(parUsuario == NULL){
+            Usuario* nuevoUsuario = malloc(sizeof(usuario));
+            if(nuevoUsuario == NULL) return;
+
+            nuevoUsuario->usuario = strdup(usuario);
+            nuevoUsuario->contrasena = strdup(clave_maestra);
+
+            list_pushBack(listaUsuario, nuevoUsuario);
+            listaPassword = list_create();
+            map_insert(mapa, nuevoUsuario->usuario, listaPassword);
+        }
+        if(pagina_servicio != NULL && clave_cifrada != NULL){
+            Contrasena *nuevaC = malloc(sizeof(Contrasena));
+            if(nuevaC == NULL) return;
+
+            nuevaC->pagina = strdup(pagina_servicio);
+            nuevaC->contrasenaCifrada = strdup(clave_cifrada);
+
+            list_pushBack(listaPassword, nuevaC);
+
+        }
+
+    }
+    fclose(archivo);
+}
+
 
 int main()
 {
