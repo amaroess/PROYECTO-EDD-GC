@@ -1,7 +1,12 @@
 #include <stdio.h>
+#include <string.h>
+#include <time.h>
 #include "tdas/list.h" // TDA LISTA
 #include "tdas/map.h" // TDA MAPA
 #include "tdas/extra.h"
+ 
+#define claveHex 0x6C
+#define AlfabetoASCII 128
 
 typedef struct Usuario // hecho por amaro, el 11/06/2024
 {
@@ -13,6 +18,12 @@ typedef struct Contrasena // hecho por amaro, el 11/06/2024
     char* contrasenaCifrada; // contraseña cifrada
     char* pagina; // página o servicio al que corresponde la contraseña.
 } Contrasena;
+
+typedef struct{
+    Map* hijos;
+    char palabra;
+    List* contraseñas;
+} NodoTrie;
 
 void crearUsuario(List* listaUsuario, Map* mapa){
     char nombre[50];
@@ -137,6 +148,115 @@ void LeerArchivo(List* listaUsuario, Map* mapa){
     fclose(archivo);
 }
 
+char encriptar(char* contrasena){
+    int i = 0;
+    char* contrasenaCifrada = malloc(strlen(contrasena) + 1); // se reserva memoria para la contraseña cifrada, el tamaño es el mismo que la contraseña original más uno para el caracter nulo.
+    while(contrasena[i] != '\0'){
+        char caracterCif = contrasena[i] ^ claveHex; 
+        sprintf(&contrasenaCifrada[i], "%02X", caracterCif);
+        i++;
+    }
+    contrasenaCifrada[i*2] = '\0';
+    return contrasenaCifrada;
+}
+
+char desencriptar(char* contrasenaCifrada){
+    char* contrasena = malloc(strlen(contrasenaCifrada) / 2 + 1); 
+    if(contrasena == NULL) return NULL;
+    int tamano = strlen(contrasenaCifrada);
+    int k = 0;
+    for(int i = 0; i < tamano; i += 2){
+        char carCif[3];
+        carCif[0] = contrasenaCifrada[i];
+        carCif[1] = contrasenaCifrada[i + 1];
+        carCif[2] = '\0';
+
+        unsigned int valorCif;
+        sscanf(carCif, "%X", &valorCif);
+
+        contrasena[k] = (char)(valorCif ^ claveHex);
+        k++;
+    }
+    contrasena[k] = '\0';
+    return contrasena;
+}
+
+List* iniciarSesion(List * listaUsuario, Map* mapa){
+    char usuario[50];
+    printf("Ingrese su nombre de usuario: ");
+    scanf("%49s", usuario);
+
+    Usuario* usuarioActual = list_first(listaUsuario);
+    while(usuarioActual != NULL){
+        if(strcmp(usuarioActual->usuario, usuario) == 0){
+            int intentos = 3;
+            char clave[50];
+            printf("Ingrese su contraseña maestra: ");
+            scanf("%49s", clave);
+            while(intentos > 0){
+                if(strcmp(usuarioActual->contrasena, clave) == 0){
+                    printf("Inicio de sesión exitoso.\n");
+                    MapPair* parUsuario = map_search(mapa, usuarioActual->usuario);
+                    return parUsuario->value;
+                } 
+                else{
+                    intentos--;
+                    printf("Contraseña incorrecta.\n");
+                }
+            }
+            
+        }
+        usuarioActual = list_next(listaUsuario);
+    }
+    printf("Usuario no encontrado.\n");
+}
+
+int is_equal_str(char dato1, char dato2){
+    return strcmp(dato1, dato2);
+}
+
+NodoTrie crearTrie(){
+    NodoTrie* raiz;
+    raiz = (NodoTrie *)malloc(sizeof(NodoTrie));
+    raiz->hijos = map_create(is_equal_str);
+    raiz->contraseñas = NULL;
+    return *raiz;
+}
+
+void addTrie(NodoTrie *raiz, char *palabra, List* listaContrasena){
+    int i = 0;
+    NodoTrie* actual = raiz;
+    while(palabra[i] != '\0'){
+        if(map_search(actual->hijos, palabra[i]) == NULL){
+            NodoTrie * nodo;
+            if(palabra[i+1] == '\0'){
+                nodo->palabra = palabra;
+                nodo->contraseñas = listaContrasena;
+            }
+            else{
+                nodo->contraseñas = NULL;
+                nodo->palabra = NULL;
+            }
+            nodo->hijos = map_create(is_equal_str);
+            map_insert(actual->hijos, palabra[i], nodo);
+            return;
+        }
+        actual = map_search(actual->hijos, palabra[i]);
+        i++;
+    }
+    return;
+}
+
+List* searchTrie(NodoTrie* raiz, char *palabra){
+    int i = 0;
+    NodoTrie* actual  = raiz;
+    while(palabra[i] != '\0'){
+        if(strcmp(actual->palabra, palabra) == 0) return actual->contraseñas;
+        if(map_search(actual->hijos), palabra[i] == NULL) return NULL;
+        actual = map_search(actual->hijos, palabra[i]);
+        i++;
+    }
+}
 
 int main()
 {
