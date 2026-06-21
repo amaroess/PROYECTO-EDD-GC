@@ -4,14 +4,16 @@
 #include "tdas/list.h" // TDA LISTA
 #include "tdas/map.h" // TDA MAPA
 #include "tdas/extra.h"
+#include <ctype.h>
  
 #define claveHex 0x6C
-#define AlfabetoASCII 128
+#define TIEMPO_BLOQUEO 60
 
 typedef struct Usuario // hecho por amaro, el 11/06/2024
 {
     char* usuario; // nombre de usuario
     char* contrasena; // contraseña del usuario
+    time_t momento_bloqueo;
 } Usuario;
 typedef struct Contrasena // hecho por amaro, el 11/06/2024
 {
@@ -46,6 +48,7 @@ void crearUsuario(List* listaUsuario, Map* mapa){
     
     nuevoUsuario->usuario = strdup(nombre);
     nuevoUsuario->contrasena = strdup(clave);
+    nuevoUsuario->momento_bloqueo = 0;
     list_pushBack(listaUsuario, nuevoUsuario);
     List* listaPassword = list_create();
     map_insert(mapa, nuevoUsuario->usuario, listaPassword);
@@ -191,6 +194,18 @@ List* iniciarSesion(List * listaUsuario, Map* mapa){
         if(strcmp(usuarioActual->usuario, usuario) == 0){
             int intentos = 3;
             char clave[50];
+            if(usuarioActual->momento_bloqueo > 0){
+                time_t tiempo_actual = time(NULL);
+                double tiempoPasado = difftime(tiempo_actual, usuarioActual->momento_bloqueo);
+                if(tiempoPasado < TIEMPO_BLOQUEO){
+                    int segundosRestantes = TIEMPO_BLOQUEO - (int)tiempoPasado;
+                    printf("Tu cuenta se encuentra bloqueada temporalmente!\n Tiempo restante : %d segundos\n", segundosRestantes);
+                    return NULL;
+                }
+                else{
+                    usuarioActual->momento_bloqueo = 0;
+                }
+            }
             printf("Ingrese su contraseña maestra: ");
             scanf("%49s", clave);
             while(intentos > 0){
@@ -203,6 +218,11 @@ List* iniciarSesion(List * listaUsuario, Map* mapa){
                     intentos--;
                     printf("Contraseña incorrecta.\n");
                 }
+            }
+            if(intentos == 0){
+                printf("El usuario ha sido bloqueado temporalmente por %d segundos. \nIntente iniciar sesion mas tarde.");
+                usuarioActual->momento_bloqueo = time(NULL);
+                return NULL;
             }
             
         }
@@ -247,20 +267,84 @@ void addTrie(NodoTrie *raiz, char *palabra, List* listaContrasena){
     return;
 }
 
-List* searchTrie(NodoTrie* raiz, char *palabra){
+List* searchTrie(NodoTrie* raiz, char *palabra){ //falta hacer una para eliminar las palabras
     int i = 0;
     NodoTrie* actual  = raiz;
     while(palabra[i] != '\0'){
         if(strcmp(actual->palabra, palabra) == 0) return actual->contraseñas;
-        if(map_search(actual->hijos), palabra[i] == NULL) return NULL;
+        if(map_search(actual->hijos, palabra[i]) == NULL) return NULL;
         actual = map_search(actual->hijos, palabra[i]);
         i++;
+    }
+    return NULL;
+}
+
+void mostrarPaginas(List* contrasenas){
+    Contrasena* aux = list_first(contrasenas);
+    printf("Imprimiendo lista de paginas con contrasenas registradas: \n");
+    while(aux != NULL){
+        printf("%s \n", aux->pagina);
+    }
+    return;
+}
+
+Map* cargarPalabras(){
+    Map* palabrasFiltradas = map_create(is_equal_str);
+    FILE *archivo = fopen("contrasenas.csv", "r");
+    if(archivo == NULL){
+        printf("No se encontró el archivo.");
+        return;
+    }
+
+    char* campo;
+    while((campo = leer_linea_csv(archivo, ",")) != NULL){
+        if(campo == NULL) continue;
+        char* mensaje = "Esta contrasena es muy comun! Se recomiendo cambiarla.";
+        map_insert(palabrasFiltradas, campo, mensaje);
+    }
+    return palabrasFiltradas;
+}
+
+void robustez(Map* palabrasF, char *contrasena){
+    if(map_search(palabrasF, contrasena) != NULL) printf("%s", map_search(palabrasF, contrasena)->value);
+    else{
+        int puntaje = 0;
+        int mayus = 0;
+        int simbolos = 0;
+        int minus = 0;
+        int numero = 0;
+        int largo = strlen(contrasena);
+        for(unsigned int i = 0; i < largo; i++){
+            if(isupper(contrasena[i])) mayus = 1;
+            else if(islower(contrasena[i])) minus = 1;
+            else if(isdigit(contrasena[i])) numero = 1;
+            else if(ispunct(contrasena[i])) simbolos = 1;
+        }
+
+        if(minus) puntaje++;
+        if(mayus) puntaje +=2;
+        if(numero) puntaje +=2;
+        if(simbolos) puntaje +=3;
+        if(largo >= 10) puntaje +=2;
+
+        if(puntaje >= 8) printf("Felicidades! Tu contraseña es muy segura.\n");
+        else if(puntaje >= 5) {
+            printf("Tu contrasena podria mejorar\n");
+            if(simbolos == 0 || numero == 0) printf("Intenta anadir simbolos o numeros en la contrasena!\n");
+        }
+        else{
+            printf("Tu contrasena es mu debil!\n");
+            if(simbolos == 0 || numero == 0) printf("Intenta anadir simbolos o numeros en la contrasena!\n");
+            if(largo <= 10) printf("Intenta alargar la contrasena!");
+        }
     }
 }
 
 int main()
 {
     puts("-----BIENVENIDO A TU GESTOR DE CONTRASEÑAS-----\n");
+    Map* palabrasFiltradas = map_create(is_equal_str);
+    palabrasFiltradas = cargarPalabras();
     return 0;
     // struct Usuario (usuario, contrasena), struct contrasena (contrasena cifrada, pagina) *---
     // void CrearUsuario(List* listaUsuario) *---
