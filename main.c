@@ -340,11 +340,73 @@ void robustez(Map* palabrasF, char *contrasena){
     }
 }
 
+void sesionIniciada(List* contrasenasUsuario){
+    printf("Bienvenido a su gestor de contrasenas.\n");
+    printf("1) Anadir una Contrasena.\n");
+    printf("2) Eliminar una Contrasena.\n");
+    printf("3) Ver todas las paginas registradas.\n");
+    printf("4) Cerrar Sesion.\n");
+    char opcion;
+    do{
+        scanf("%s", opcion);
+        switch(opcion){
+            case '1':
+                AgregarPassword(contrasenasUsuario);
+                break;
+            case '2':
+                //eliminar password
+                break;
+            case '3':
+                mostrarPaginas(contrasenasUsuario);
+                break;
+            case '4':
+                CerrarSesion();
+                break;
+            default:
+                printf("Ingrese un caracter valido.\n");
+                break;
+
+        }
+    } while (opcion != '4');
+}
+
 int main()
 {
     puts("-----BIENVENIDO A TU GESTOR DE CONTRASEÑAS-----\n");
     Map* palabrasFiltradas = map_create(is_equal_str);
     palabrasFiltradas = cargarPalabras();
+    List* listaUsuarios;
+    Map* mapaContrasenas;
+    LeerArchivo(listaUsuarios, mapaContrasenas);
+    char dato;
+    printf("1) Iniciar Sesion.\n");
+    printf("2) Crear Usuario\n");
+    printf("3) Eliminar Usuario\n");
+    printf("4) Salir.\n");
+
+    do{
+        printf("Ingrese su opcion:\n");
+        scanf("%s", dato);
+        switch(dato){
+            case '1':
+                List* contrasenasUsuario;
+                contrasenasUsuario = iniciarSesion(listaUsuarios, mapaContrasenas);
+                sesionIniciada(contrasenasUsuario);
+                break;
+            case '2':
+                crearUsuario(listaUsuarios, mapaContrasenas);
+                break;
+            case '3':
+                EliminarUsuario(listaUsuarios);
+                break;
+            case '4':
+                printf("Saliendo del programa...");
+                break;
+            default:
+                printf("Ingrese un caracter valido.");
+                break;
+        }
+    } while(dato != '4');
     return 0;
     // struct Usuario (usuario, contrasena), struct contrasena (contrasena cifrada, pagina) *---
     // void CrearUsuario(List* listaUsuario) *---
