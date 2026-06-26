@@ -92,8 +92,6 @@ void AgregarPassword(List* ListaPassword) // hecho por amaro, el 11/06/2024
     list_pushBack(ListaPassword, nuevaContrasena); // se agrega la nueva contraseña a la lista de contraseñas
 }
 
-void
-
 
 void CerrarSesion() // hecho por amaro, el 11/06/2024
 {
@@ -344,6 +342,33 @@ void robustez(Map* palabrasF, char *contrasena){
     }
 }
 
+void eliminarPassword(List* listaPassword, NodoTrie* raizTrie){
+    char pagina[21];
+    printf("Ingrese el nombre de la página o servicio del que desea eliminar su contraseña: ");
+    scanf("%20s", pagina);
+
+    List * listaTrie = searchTrie(raizTrie, pagina);
+    if(listaTrie == NULL){
+        printf("La página o servicio '%s' no ha sido registrada\n", pagina);
+        return;
+    }
+    Contrasena* aux = list_first(listaPassword);
+    while(aux != NULL){
+        if(strcmp(aux->pagina, pagina) == 0){
+            if(aux->pagina != NULL) free(aux->pagina);
+            if(aux->contrasenaCifrada != NULL) free(aux->contrasenaCifrada);
+            free(aux);
+
+            list_popCurrent(listaPassword);
+            printf("La contraseña de la página '%s' ha sido eliminada", pagina);
+            return;
+        }
+        aux = list_next(listaPassword);
+    }
+}
+
+
+
 void sesionIniciada(List* contrasenasUsuario, NodoTrie* raizTrie){
     printf("Bienvenido a su gestor de contrasenas.\n");
     printf("1) Anadir una Contrasena.\n");
@@ -358,7 +383,7 @@ void sesionIniciada(List* contrasenasUsuario, NodoTrie* raizTrie){
                 AgregarPassword(contrasenasUsuario);
                 break;
             case '2':
-                eliminarPassword()
+                eliminarPassword(raizTrie);
                 break;
             case '3':
                 mostrarPaginas(contrasenasUsuario);
