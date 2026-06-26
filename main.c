@@ -91,6 +91,10 @@ void AgregarPassword(List* ListaPassword) // hecho por amaro, el 11/06/2024
     strcpy(nuevaContrasena->pagina, pagina); //  se asigna la página o servicio a la nueva contraseña
     list_pushBack(ListaPassword, nuevaContrasena); // se agrega la nueva contraseña a la lista de contraseñas
 }
+
+void
+
+
 void CerrarSesion() // hecho por amaro, el 11/06/2024
 {
     char opcion;
@@ -340,7 +344,7 @@ void robustez(Map* palabrasF, char *contrasena){
     }
 }
 
-void sesionIniciada(List* contrasenasUsuario){
+void sesionIniciada(List* contrasenasUsuario, NodoTrie* raizTrie){
     printf("Bienvenido a su gestor de contrasenas.\n");
     printf("1) Anadir una Contrasena.\n");
     printf("2) Eliminar una Contrasena.\n");
@@ -354,7 +358,7 @@ void sesionIniciada(List* contrasenasUsuario){
                 AgregarPassword(contrasenasUsuario);
                 break;
             case '2':
-                //eliminar password
+                eliminarPassword()
                 break;
             case '3':
                 mostrarPaginas(contrasenasUsuario);
@@ -391,7 +395,15 @@ int main()
             case '1':
                 List* contrasenasUsuario;
                 contrasenasUsuario = iniciarSesion(listaUsuarios, mapaContrasenas);
-                sesionIniciada(contrasenasUsuario);
+                if(contrasenasUsuario != NULL){
+                    NodoTrie raizUsuario = crearTrie();
+                    Contrasena* aux = list_first(contrasenasUsuario);
+                    while(aux != NULL){
+                        addTrie(&raizUsuario, aux->pagina, contrasenasUsuario);
+                        aux = list_next(contrasenasUsuario);
+                    }
+                    sesionIniciada(contrasenasUsuario, &raizUsuario);
+                }
                 break;
             case '2':
                 crearUsuario(listaUsuarios, mapaContrasenas);
