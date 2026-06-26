@@ -153,6 +153,41 @@ void LeerArchivo(List* listaUsuario, Map* mapa){
     fclose(archivo);
 }
 
+void guardarArchivo(List* listaUsuario, Map* mapa){
+    FILE *archivo = fopen("archivo.txt", "w");
+    if(archivo == NULL) return;
+
+    Usuario * usuario = list_first(listaUsuario);
+    while(usuario != NULL){
+        MapPair* par = map_search(mapa, usuario->usuario);
+        List* listaPassword = NULL;
+        if(par != NULL){
+            listaPassword = par->value;
+        } else{
+            listaPassword = NULL;
+        }
+
+        if(listaPassword != NULL && list_first(listaPassword) != NULL){
+            Contrasena* contrasena = list_first(listaPassword);
+            while(contrasena != NULL){
+                fprintf(archivo, "%s,%s,%s,%s\n", usuario->usuario, usuario->contrasena, contrasena->pagina, contrasena->contrasenaCifrada);
+                contrasena = list_next(listaPassword);
+            }
+        }
+        else{
+            fprintf(archivo, "%s,%s,,\n", usuario->usuario, usuario->contrasena);
+        }
+        usuario = list_next(listaUsuario);
+
+
+    }
+
+    fclose(archivo);
+
+}
+
+
+
 char encriptar(char* contrasena){
     int i = 0;
     char* contrasenaCifrada = malloc(strlen(contrasena) + 1); // se reserva memoria para la contraseña cifrada, el tamaño es el mismo que la contraseña original más uno para el caracter nulo.
@@ -383,7 +418,7 @@ void sesionIniciada(List* contrasenasUsuario, NodoTrie* raizTrie){
                 AgregarPassword(contrasenasUsuario);
                 break;
             case '2':
-                eliminarPassword(raizTrie);
+                eliminarPassword(contrasenasUsuario, raizTrie);
                 break;
             case '3':
                 mostrarPaginas(contrasenasUsuario);
@@ -428,10 +463,12 @@ int main()
                         aux = list_next(contrasenasUsuario);
                     }
                     sesionIniciada(contrasenasUsuario, &raizUsuario);
+                    guardarArchivo(listaUsuarios, mapaContrasenas);
                 }
                 break;
             case '2':
                 crearUsuario(listaUsuarios, mapaContrasenas);
+                guardarArchivo(listaUsuarios, mapaContrasenas);
                 break;
             case '3':
                 EliminarUsuario(listaUsuarios);
