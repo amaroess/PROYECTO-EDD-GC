@@ -135,11 +135,11 @@ void crearUsuario(List* listaUsuario, Map* mapa){
     char clave[50]; //contraseña maestra
 
     printf("Ingrese su nombre de usuario: ");
-    scanf("%49s", nombre);
+    scanf(" %49s", nombre);
 
     MapPair* usuario_existente = map_search(mapa, nombre); //se comprueba con el mapa si el nombre de usuario ya está en uso
     if(usuario_existente != NULL){
-        printf("El usuario %s ya está registrado\n");
+        printf("El usuario %s ya está registrado\n", nombre);
         return;
     }
 
@@ -150,7 +150,7 @@ void crearUsuario(List* listaUsuario, Map* mapa){
     if(nuevoUsuario == NULL) return; // si falla la reserva termina la ejecucion de la funcion
     
     nuevoUsuario->usuario = strdup(nombre); //se copian los datos para el nuevo usuario
-    nuevoUsuario->contrasena = strdup(clave);
+    nuevoUsuario->contrasena = encriptar(clave);
     nuevoUsuario->momento_bloqueo = 0; // la marca del bloqueo temporal se inicializa en 0
     list_pushBack(listaUsuario, nuevoUsuario); //se añade el usuario en la lista de usuarios
     List* listaPassword = list_create(); // se crea su lista de contrasenas
@@ -195,7 +195,7 @@ void AgregarPassword(List* ListaPassword, NodoTrie* raiz) // hecho por amaro, el
 
     char* contrasenaFinal = encriptar(contrasena); // variable para guardar la contraseña cifrada.
     nuevaContrasena->contrasenaCifrada = contrasenaFinal; // se asigna la contraseña cifrada a la nueva contraseña, funcion encriptar deberia reservar la memoria.
-    strcpy(nuevaContrasena->pagina, pagina); //  se asigna la página o servicio a la nueva contraseña
+    nuevaContrasena->pagina = strdup(pagina); //  se asigna la página o servicio a la nueva contraseña
     list_pushBack(ListaPassword, nuevaContrasena); // se agrega la nueva contraseña a la lista de contraseñas
     
     addTrie(raiz, pagina, contrasenaFinal); // se añade la pagina al Trie del usuario 
@@ -236,7 +236,7 @@ void LeerArchivo(List* listaUsuario, Map* mapa){
             listaPassword = parUsuario->value;
         }
         if(parUsuario == NULL){ // si no está entonces se añade el usuario y se inicializa su lista de contraseñas
-            Usuario* nuevoUsuario = malloc(sizeof(usuario));
+            Usuario* nuevoUsuario = malloc(sizeof(Usuario));
             if(nuevoUsuario == NULL) return;
 
             nuevoUsuario->usuario = strdup(usuario);
@@ -338,8 +338,8 @@ List* iniciarSesion(List * listaUsuario, Map* mapaContras){ // esta funcion reci
                 }
             }
             if(intentos == 0){ // si los intentos llegan a 0
-                printf("El usuario ha sido bloqueado temporalmente por %d segundos. \nIntente iniciar sesion mas tarde.");
-                usuarioActual->momento_bloqueo = time(NULL); // se toma el tiempo en el que ocurre para el bloqueo de contraseña
+                printf("El usuario ha sido bloqueado temporalmente por %d segundos. \nIntente iniciar sesion mas tarde.'n", TIEMPO_BLOQUEO);
+                usuarioActual->momento_bloqueo = time(NULL); // se toma el tiempo en el que ocurre para el bloqueo de contraseña./programa.exe
                 return NULL; // y la funcion no retorna nada
             }
             
@@ -357,6 +357,7 @@ void mostrarPaginas(List* contrasenas){
     printf("Imprimiendo lista de paginas con contrasenas registradas: \n");
     while(aux != NULL){ // se imprimen todas las paginas registradas del usuario
         printf("%s \n", aux->pagina);
+        aux = list_next(contrasenas);
     }
     return;
 }
