@@ -262,34 +262,42 @@ void LeerArchivo(List* listaUsuario, Map* mapa){
 
 void guardarArchivo(List* listaUsuario, Map* mapa){
     FILE *archivo = fopen("archivo.txt", "w"); // se abre el archivo de datos en modo escritura
-    if(archivo == NULL) return;
+    if(archivo == NULL) return; // si no se pudo abrir, termina la funcion
 
+    // se recorre la lista de usuarios
     Usuario * usuario = list_first(listaUsuario); 
     while(usuario != NULL){ // se recorre la lista de usuarios
+        // se busca en el mapa si el usuario actual tiene contraseñas de servicios
         MapPair* par = map_search(mapa, usuario->usuario);
         List* listaPassword = NULL;
         if(par != NULL){
-            listaPassword = par->value;
+            listaPassword = par->value; // si se encuentra la clave en el mapa, se extrae su lista de contraseñas
         } else{
-            listaPassword = NULL;
+            listaPassword = NULL; // si no tiene registros, se deja como NULL
         }
 
+        // se pregunta si el usuario tiene contraseñas cargadas en su lista
         if(listaPassword != NULL && list_first(listaPassword) != NULL){
             Contrasena* contrasena = list_first(listaPassword);
+
+            // se recorren las contraseñas de paginas que tiene el usuario
             while(contrasena != NULL){
+                // escribe en el archivo: usuario, clave maestra, servicio y clave del servicio
                 fprintf(archivo, "%s,%s,%s,%s\n", usuario->usuario, usuario->contrasena, contrasena->pagina, contrasena->contrasenaCifrada);
-                contrasena = list_next(listaPassword);
+                contrasena = list_next(listaPassword); // se avanza a la siguiente contraseña
             }
         }
         else{
+            // si el usuario existe pero no tenia ninguna contraseña guardada,
+            // se escriben solo los datos principales y los otros campos quedan vacios
             fprintf(archivo, "%s,%s,,\n", usuario->usuario, usuario->contrasena);
         }
-        usuario = list_next(listaUsuario);
+        usuario = list_next(listaUsuario); // se avanza al siguiente usuario de la lista
 
 
     }
 
-    fclose(archivo);
+    fclose(archivo); // se cierra el flujo del archivo para la escritura en el disco
 
 }
 
@@ -417,27 +425,29 @@ void robustez(Map* palabrasF, char *contrasena){ // esta funcion evalua la robus
 }
 
 void eliminarPassword(List* listaPassword, NodoTrie* raizTrie){
-    char pagina[21];
+    char pagina[21]; // buffer para guardar el nombre del serivio o pagina (max 20 caracteres)
     printf("Ingrese el nombre de la página o servicio del que desea eliminar su contraseña:\n");
-    scanf("%20s", pagina);
+    scanf("%20s", pagina); // se lee el nombre del servicio
 
     char* contrasenaCif = searchTrie(raizTrie, pagina);
     if(contrasenaCif == NULL){
         printf("La página o servicio '%s' no ha sido registrada\n", pagina);
-        return;
+        return; // se detiene la funcion si el servicio no existía
     }
-    Contrasena* aux = list_first(listaPassword);
+    // se recorre la lista para encontrar el nodo y liberar su memoria
+    Contrasena* aux = list_first(listaPassword); // se empieza por el primer elemento de la lista
     while(aux != NULL){
-        if(strcmp(aux->pagina, pagina) == 0){
+        if(strcmp(aux->pagina, pagina) == 0){ // se compara si la pagina del nodo actual coincide con la pagina ingresada
+            // se libera la memoria asignada a los strings del struct
             if(aux->pagina != NULL) free(aux->pagina);
             if(aux->contrasenaCifrada != NULL) free(aux->contrasenaCifrada);
-            free(aux);
+            free(aux); // liberacion de la estructura que contenia la contraseña
 
-            list_popCurrent(listaPassword);
+            list_popCurrent(listaPassword); // elimina el nodo actual de la lista interna del mapa de usuarios
             printf("La contraseña de la página '%s' ha sido eliminada", pagina);
             return;
         }
-        aux = list_next(listaPassword);
+        aux = list_next(listaPassword); // se avanza al siguiente elemento de la lista si no coincide
     }
 }
 
