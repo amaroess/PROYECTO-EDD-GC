@@ -24,12 +24,12 @@ typedef struct Contrasena // hecho por amaro, el 11/06/2024
 
 typedef struct{
     Map* hijos; // mapa de hijos
-    char palabra; // palabra para ubicar fin del string
+    char *palabra; // palabra para ubicar fin del string
     char* contrasena; //contrasena cifrada
 } NodoTrie;
 
-int is_equal_str(char dato1, char dato2){
-    return strcmp(dato1, dato2); // funcion para comparar strings para el mapa
+int is_equal_str(void* dato1, void* dato2){
+    return strcmp((char*)dato1, (char*)dato2); // funcion para comparar strings para el mapa
 }
 
 NodoTrie* crearTrie(){ // se crea un Trie utilizando la raiz
@@ -37,7 +37,7 @@ NodoTrie* crearTrie(){ // se crea un Trie utilizando la raiz
     raiz = (NodoTrie *)malloc(sizeof(NodoTrie)); // se reserva memoria
     raiz->hijos = map_create(is_equal_str); // se crea el mapa de hijos
     raiz->contrasena = NULL; // se establece la contrasena en NULL
-    raiz->palabra == NULL;
+    raiz->palabra = NULL;
     return raiz;
 }
 
@@ -45,7 +45,7 @@ void addTrie(NodoTrie *raiz, char *palabra, char* contrasenaCif){ // con esta fu
     int i = 0; // se usa un contador para recorrer la palabra
     NodoTrie* actual = raiz; // se inicia desde la raiz
     while(palabra[i] != '\0'){ // hasta encontrar el caracter nulo
-        if(map_search(actual->hijos, palabra[i]) == NULL){ // si la letra que se busca no está en el mapa de hijos del nodo actual
+        if(map_search(actual->hijos, &palabra[i]) == NULL){ // si la letra que se busca no está en el mapa de hijos del nodo actual
             NodoTrie * nodo = (NodoTrie *)malloc(sizeof(NodoTrie)); // se reserva memoria para el nodo
             if(palabra[i+1] == '\0'){ // si el siguiente caracter es el fin del string
                 nodo->palabra = palabra; // se asigna la palabra para marcar la letra final
@@ -56,21 +56,21 @@ void addTrie(NodoTrie *raiz, char *palabra, char* contrasenaCif){ // con esta fu
                 nodo->palabra = NULL;
             }
             nodo->hijos = map_create(is_equal_str); // se crea el mapa de hijos
-            map_insert(actual->hijos, palabra[i], nodo); // en los hijos del actual se ingresa el nodo que acabamos de crear
+            map_insert(actual->hijos, &palabra[i], nodo); // en los hijos del actual se ingresa el nodo que acabamos de crear
         }
-        actual = map_search(actual->hijos, palabra[i]); // si la letra se encontró entre los hijos del actual, actual se traslada ahi
+        actual = map_search(actual->hijos, &palabra[i])->value; // si la letra se encontró entre los hijos del actual, actual se traslada ahi
         i++; // se aumenta el contador
     }
     return;
 }
 
-List* searchTrie(NodoTrie* raiz, char *palabra){
+char* searchTrie(NodoTrie* raiz, char *palabra){
     int i = 0; // se inicia el contador
     NodoTrie* actual  = raiz;
     while(palabra[i] != '\0'){ // se recorre la palabra
         if(strcmp(actual->palabra, palabra) == 0) return actual->contrasena; // si el caracter actual tiene la palabra del caracter final y coincide con la que se busca, se retorna la contrasena
-        if(map_search(actual->hijos, palabra[i]) == NULL) return NULL; // si alguna de las letras no está en el Trie, la palabra entera no está
-        actual = map_search(actual->hijos, palabra[i]); // se traslada al hijo que coincida con la letra actual
+        if(map_search(actual->hijos, &palabra[i]) == NULL) return NULL; // si alguna de las letras no está en el Trie, la palabra entera no está
+        actual = map_search(actual->hijos, &palabra[i])->value; // se traslada al hijo que coincida con la letra actual
         i++; // se aumenta el contador
     }
     return NULL; // si se recorre la palabra entera sin terminar la ejecucion se retorna nulo
@@ -370,11 +370,11 @@ Map* cargarPalabras(){ // esta funcion carga el archivo con las 100 contraseñas
     FILE *archivo = fopen("contrasenas.csv", "r");
     if(archivo == NULL){
         printf("No se encontró el archivo.");
-        return;
+        return NULL;
     }
 
-    char* campo;
-    while((campo = leer_linea_csv(archivo, ",")) != NULL){ // se lee cada linea hasta encontrar un NULL
+    char** campo;
+    while((campo = leer_linea_csv(archivo, ',')) != NULL){ // se lee cada linea hasta encontrar un NULL
         char* mensaje = "Esta contrasena es muy comun! Se recomiendo cambiarla.";
         map_insert(palabrasFiltradas, campo, mensaje); // se inserta cada contraseña en el mapa con la contra como key y un mensaje como data
     }
@@ -421,8 +421,8 @@ void eliminarPassword(List* listaPassword, NodoTrie* raizTrie){
     printf("Ingrese el nombre de la página o servicio del que desea eliminar su contraseña:\n");
     scanf("%20s", pagina);
 
-    List * listaTrie = searchTrie(raizTrie, pagina);
-    if(listaTrie == NULL){
+    char* contrasenaCif = searchTrie(raizTrie, pagina);
+    if(contrasenaCif == NULL){
         printf("La página o servicio '%s' no ha sido registrada\n", pagina);
         return;
     }
@@ -493,13 +493,13 @@ int main()
         scanf("%s", dato);
         switch(dato){
             case '1':
-                List* contrasenasUsuario = list_create; // se obtiene la lista de contraseñas del usuario 
+                List* contrasenasUsuario = list_create(); // se obtiene la lista de contraseñas del usuario 
                 contrasenasUsuario = iniciarSesion(listaUsuarios, mapaContrasenas);
                 if(contrasenasUsuario != NULL){ // se añade cada contraseña en el trie
                     NodoTrie* raizUsuario = crearTrie();
                     Contrasena* aux = list_first(contrasenasUsuario);
                     while(aux != NULL){
-                        addTrie(&raizUsuario, aux->pagina, contrasenasUsuario);
+                        addTrie(raizUsuario, aux->pagina, aux->contrasenaCifrada);
                         aux = list_next(contrasenasUsuario);
                     }
                     sesionIniciada(contrasenasUsuario, raizUsuario); //se inicia sesion
@@ -511,13 +511,13 @@ int main()
                 guardarArchivo(listaUsuarios, mapaContrasenas); // cuando finaliza la creacion de usuario este se añade en el archivo
                 break;
             case '3':
-                List* contrasenasUsuario;
+                List* contrasenasUsuario = list_create();
                 contrasenasUsuario = iniciarSesion(listaUsuarios, mapaContrasenas);
                 if(contrasenasUsuario != NULL){
                     NodoTrie* raizUsuario = crearTrie();
                     Contrasena* aux = list_first(contrasenasUsuario);
                     while(aux != NULL){
-                        addTrie(&raizUsuario, aux->pagina, contrasenasUsuario);
+                        addTrie(raizUsuario, aux->pagina, aux->contrasenaCifrada);
                         aux = list_next(contrasenasUsuario);
                     }
                     EliminarUsuario(listaUsuarios, mapaContrasenas, raizUsuario); // cuando se quiere eliminar un usuario tambien se elimina su arbol Trie para asegurar que no haya datos basura
