@@ -32,7 +32,7 @@ Requisitos previos para ejecutar:
 9. agregarPassword: solicita el nombre y contraseña de la página a guardar
 10. eliminarPassword: solicita el nombre y contraseña de la página a eliminar 
 
-* Opciones no funcionando: Ninguna.
+* Opciones no funcionando: después de iniciar sesión, no se dirige al siguiente submenú
 
 ## Ejemplo de uso:
 1. inicio del programa, primero se registra un nuevo usuario.
