@@ -118,7 +118,7 @@ void LeerArchivo(List* listaUsuario, Map* mapa){
         if(campos[0] == NULL || campos[1] == NULL) continue; // Si la linea no tiene al usuario o la clave maestra, se salta
 
         char* usuario = campos[0];
-        char* clave_maestra = campos[1];
+        char* clave_maestra = desencriptar(campos[1]);
         char* pagina_servicio = campos[2];
         char* clave_cifrada = campos[3];
 
@@ -166,16 +166,17 @@ void guardarArchivo(List* listaUsuario, Map* mapa){
         } else{
             listaPassword = NULL;
         }
+        char * claveMaestraCifrada = encriptar(usuario->contrasena);
 
         if(listaPassword != NULL && list_first(listaPassword) != NULL){
             Contrasena* contrasena = list_first(listaPassword);
             while(contrasena != NULL){
-                fprintf(archivo, "%s,%s,%s,%s\n", usuario->usuario, usuario->contrasena, contrasena->pagina, contrasena->contrasenaCifrada);
+                fprintf(archivo, "%s,%s,%s,%s\n", usuario->usuario, claveMaestraCifrada, contrasena->pagina, contrasena->contrasenaCifrada);
                 contrasena = list_next(listaPassword);
             }
         }
         else{
-            fprintf(archivo, "%s,%s,,\n", usuario->usuario, usuario->contrasena);
+            fprintf(archivo, "%s,%s,,\n", usuario->usuario, claveMaestraCifrada);
         }
         usuario = list_next(listaUsuario);
 
