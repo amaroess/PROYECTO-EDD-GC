@@ -15,6 +15,7 @@ typedef struct Usuario // hecho por amaro, el 11/06/2024
     char* contrasena; // contraseña del usuario
     time_t momento_bloqueo;
 } Usuario;
+
 typedef struct Contrasena // hecho por amaro, el 11/06/2024
 {
     char* contrasenaCifrada; // contraseña cifrada
@@ -24,7 +25,7 @@ typedef struct Contrasena // hecho por amaro, el 11/06/2024
 typedef struct{
     Map* hijos;
     char palabra;
-    List* contraseñas;
+    char* contrasena;
 } NodoTrie;
 
 void crearUsuario(List* listaUsuario, Map* mapa){
@@ -57,7 +58,7 @@ void crearUsuario(List* listaUsuario, Map* mapa){
 }
 
 
-void EliminarUsuario(List* listaUsuario) // hecho por amaro, el 11/06/2024
+void EliminarUsuario(List* listaUsuario, Map* mapaUsuarios, NodoTrie* raiz) // hecho por amaro, el 11/06/2024
 {
     char UsuarioE[21]; // variable para guardar el nombre del usuario a eliminar, 21 caracteres una cantidad aceptable.
     printf("Usuario a Eliminar: ");
@@ -68,6 +69,8 @@ void EliminarUsuario(List* listaUsuario) // hecho por amaro, el 11/06/2024
         if (strcmp(usuarioAEliminar->usuario, UsuarioE) == 0) // se compara el nombre del usuario a eliminar con el nombre del usuario actual de la lista
         {
             list_popCurrent(listaUsuario); // se elimina el usuario de la lista
+            map_remove(mapaUsuarios, UsuarioE);
+            borrarTrie(raiz);
             printf("Usuario eliminado exitosamente.\n");
             return; // se termina la función después de eliminar el usuario
         }
@@ -76,7 +79,7 @@ void EliminarUsuario(List* listaUsuario) // hecho por amaro, el 11/06/2024
     printf("Usuario no encontrado.\n");
 }
 
-void AgregarPassword(List* ListaPassword) // hecho por amaro, el 11/06/2024
+void AgregarPassword(List* ListaPassword, NodoTrie* raiz) // hecho por amaro, el 11/06/2024
 {
     printf("Contraseña a agregar: ");
     char contrasena[21]; // variable para guardar la contraseña a agregar
@@ -84,14 +87,17 @@ void AgregarPassword(List* ListaPassword) // hecho por amaro, el 11/06/2024
     printf("\nPágina o servicio al que corresponde la contraseña: ");
     char pagina[21]; // variable para guardar la página o servicio al que corresponde la contraseña
     scanf("%20s", pagina); // se lee la página o servicio al que corresponde la contraseña
+
     Contrasena* nuevaContrasena = malloc(sizeof(Contrasena)); // se crea una nueva contraseña
     if (nuevaContrasena == NULL) return; // se verifica que se haya creado la nueva contraseña correctamente
+
     char* contrasenaFinal = encriptar(contrasena); // variable para guardar la contraseña cifrada.
     nuevaContrasena->contrasenaCifrada = contrasenaFinal; // se asigna la contraseña cifrada a la nueva contraseña, funcion encriptar deberia reservar la memoria.
     strcpy(nuevaContrasena->pagina, pagina); //  se asigna la página o servicio a la nueva contraseña
     list_pushBack(ListaPassword, nuevaContrasena); // se agrega la nueva contraseña a la lista de contraseñas
+    
+    addTrie(raiz, pagina, contrasenaFinal);
 }
-
 
 void CerrarSesion() // hecho por amaro, el 11/06/2024
 {
@@ -146,7 +152,6 @@ void LeerArchivo(List* listaUsuario, Map* mapa){
             nuevaC->contrasenaCifrada = strdup(clave_cifrada);
 
             list_pushBack(listaPassword, nuevaC);
-
         }
 
     }
@@ -222,7 +227,7 @@ char desencriptar(char* contrasenaCifrada){
     return contrasena;
 }
 
-List* iniciarSesion(List * listaUsuario, Map* mapa){
+List* iniciarSesion(List * listaUsuario, Map* mapaContras){
     char usuario[50];
     printf("Ingrese su nombre de usuario: ");
     scanf("%49s", usuario);
@@ -249,7 +254,7 @@ List* iniciarSesion(List * listaUsuario, Map* mapa){
             while(intentos > 0){
                 if(strcmp(usuarioActual->contrasena, clave) == 0){
                     printf("Inicio de sesión exitoso.\n");
-                    MapPair* parUsuario = map_search(mapa, usuarioActual->usuario);
+                    MapPair* parUsuario = map_search(mapaContras, usuarioActual->usuario);
                     return parUsuario->value;
                 } 
                 else{
@@ -273,15 +278,15 @@ int is_equal_str(char dato1, char dato2){
     return strcmp(dato1, dato2);
 }
 
-NodoTrie crearTrie(){
+NodoTrie* crearTrie(){
     NodoTrie* raiz;
     raiz = (NodoTrie *)malloc(sizeof(NodoTrie));
     raiz->hijos = map_create(is_equal_str);
-    raiz->contraseñas = NULL;
-    return *raiz;
+    raiz->contrasena = NULL;
+    return raiz;
 }
 
-void addTrie(NodoTrie *raiz, char *palabra, List* listaContrasena){
+void addTrie(NodoTrie *raiz, char *palabra, char* contrasenaCif){
     int i = 0;
     NodoTrie* actual = raiz;
     while(palabra[i] != '\0'){
@@ -289,10 +294,10 @@ void addTrie(NodoTrie *raiz, char *palabra, List* listaContrasena){
             NodoTrie * nodo;
             if(palabra[i+1] == '\0'){
                 nodo->palabra = palabra;
-                nodo->contraseñas = listaContrasena;
+                nodo->contrasena = contrasenaCif;
             }
             else{
-                nodo->contraseñas = NULL;
+                nodo->contrasena = NULL;
                 nodo->palabra = NULL;
             }
             nodo->hijos = map_create(is_equal_str);
@@ -305,16 +310,37 @@ void addTrie(NodoTrie *raiz, char *palabra, List* listaContrasena){
     return;
 }
 
-List* searchTrie(NodoTrie* raiz, char *palabra){ //falta hacer una para eliminar las palabras
+List* searchTrie(NodoTrie* raiz, char *palabra){
     int i = 0;
     NodoTrie* actual  = raiz;
     while(palabra[i] != '\0'){
-        if(strcmp(actual->palabra, palabra) == 0) return actual->contraseñas;
+        if(strcmp(actual->palabra, palabra) == 0) return actual->contrasena;
         if(map_search(actual->hijos, palabra[i]) == NULL) return NULL;
         actual = map_search(actual->hijos, palabra[i]);
         i++;
     }
     return NULL;
+}
+
+void borrarTrie(NodoTrie* nodo){
+    if(nodo == NULL) return;
+    if(nodo->hijos != NULL){
+        MapPair* par = map_first(nodo->hijos);
+        while(par != NULL){
+            NodoTrie* aux = (NodoTrie*)par->value;
+            borrarTrie(aux);
+
+            par = map_next(nodo->hijos);
+        }
+        
+        map_clean(nodo->hijos);
+        free(nodo->hijos);
+    }
+
+    if(nodo->contrasena != NULL) free(nodo->contrasena);
+
+    free(nodo);
+
 }
 
 void mostrarPaginas(List* contrasenas){
@@ -323,6 +349,17 @@ void mostrarPaginas(List* contrasenas){
     while(aux != NULL){
         printf("%s \n", aux->pagina);
     }
+    return;
+}
+
+void mostrarContrasena(NodoTrie* trieContrasena){
+    char pagina[50];
+    printf("Ingrese la pagina de la cual quiere obtener su contrasena:\n");
+    scanf("%49s", pagina);
+
+    char* contraCif = searchTrie(trieContrasena, pagina);
+    char* contraDesCif = desencriptar(contraCif);
+    printf("Tu contraseña de %s es: %s.", pagina, contraDesCif);
     return;
 }
 
@@ -373,14 +410,14 @@ void robustez(Map* palabrasF, char *contrasena){
         else{
             printf("Tu contrasena es mu debil!\n");
             if(simbolos == 0 || numero == 0) printf("Intenta anadir simbolos o numeros en la contrasena!\n");
-            if(largo <= 10) printf("Intenta alargar la contrasena!");
+            if(largo <= 10) printf("Intenta alargar la contrasena!\n");
         }
     }
 }
 
 void eliminarPassword(List* listaPassword, NodoTrie* raizTrie){
     char pagina[21];
-    printf("Ingrese el nombre de la página o servicio del que desea eliminar su contraseña: ");
+    printf("Ingrese el nombre de la página o servicio del que desea eliminar su contraseña:\n");
     scanf("%20s", pagina);
 
     List * listaTrie = searchTrie(raizTrie, pagina);
@@ -416,13 +453,14 @@ void sesionIniciada(List* contrasenasUsuario, NodoTrie* raizTrie){
         scanf("%s", opcion);
         switch(opcion){
             case '1':
-                AgregarPassword(contrasenasUsuario);
+                AgregarPassword(contrasenasUsuario, raizTrie);
                 break;
             case '2':
                 eliminarPassword(contrasenasUsuario, raizTrie);
                 break;
             case '3':
                 mostrarPaginas(contrasenasUsuario);
+                mostrarContrasena(raizTrie);
                 break;
             case '4':
                 CerrarSesion();
@@ -457,13 +495,13 @@ int main()
                 List* contrasenasUsuario;
                 contrasenasUsuario = iniciarSesion(listaUsuarios, mapaContrasenas);
                 if(contrasenasUsuario != NULL){
-                    NodoTrie raizUsuario = crearTrie();
+                    NodoTrie* raizUsuario = crearTrie();
                     Contrasena* aux = list_first(contrasenasUsuario);
                     while(aux != NULL){
                         addTrie(&raizUsuario, aux->pagina, contrasenasUsuario);
                         aux = list_next(contrasenasUsuario);
                     }
-                    sesionIniciada(contrasenasUsuario, &raizUsuario);
+                    sesionIniciada(contrasenasUsuario, raizUsuario);
                     guardarArchivo(listaUsuarios, mapaContrasenas);
                 }
                 break;
@@ -472,7 +510,17 @@ int main()
                 guardarArchivo(listaUsuarios, mapaContrasenas);
                 break;
             case '3':
-                EliminarUsuario(listaUsuarios);
+                List* contrasenasUsuario;
+                contrasenasUsuario = iniciarSesion(listaUsuarios, mapaContrasenas);
+                if(contrasenasUsuario != NULL){
+                    NodoTrie* raizUsuario = crearTrie();
+                    Contrasena* aux = list_first(contrasenasUsuario);
+                    while(aux != NULL){
+                        addTrie(&raizUsuario, aux->pagina, contrasenasUsuario);
+                        aux = list_next(contrasenasUsuario);
+                    }
+                    EliminarUsuario(listaUsuarios, mapaContrasenas, raizUsuario);
+                }
                 break;
             case '4':
                 printf("Saliendo del programa...");
