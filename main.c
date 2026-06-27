@@ -6,8 +6,8 @@
 #include "tdas/extra.h"
 #include <ctype.h>
  
-#define claveHex 0x6C
-#define TIEMPO_BLOQUEO 60
+#define claveHex 0x6C // constante hexadecimal para cifrar
+#define TIEMPO_BLOQUEO 60 // contaste de tiempo para bloqueo temporal de cuentas
 
 typedef struct Usuario // hecho por amaro, el 11/06/2024
 {
@@ -27,6 +27,108 @@ typedef struct{
     char palabra; // palabra para ubicar fin del string
     char* contrasena; //contrasena cifrada
 } NodoTrie;
+
+int is_equal_str(char dato1, char dato2){
+    return strcmp(dato1, dato2); // funcion para comparar strings para el mapa
+}
+
+NodoTrie* crearTrie(){ // se crea un Trie utilizando la raiz
+    NodoTrie* raiz;
+    raiz = (NodoTrie *)malloc(sizeof(NodoTrie)); // se reserva memoria
+    raiz->hijos = map_create(is_equal_str); // se crea el mapa de hijos
+    raiz->contrasena = NULL; // se establece la contrasena en NULL
+    raiz->palabra == NULL;
+    return raiz;
+}
+
+void addTrie(NodoTrie *raiz, char *palabra, char* contrasenaCif){ // con esta funcion se añaden palabras al Trie
+    int i = 0; // se usa un contador para recorrer la palabra
+    NodoTrie* actual = raiz; // se inicia desde la raiz
+    while(palabra[i] != '\0'){ // hasta encontrar el caracter nulo
+        if(map_search(actual->hijos, palabra[i]) == NULL){ // si la letra que se busca no está en el mapa de hijos del nodo actual
+            NodoTrie * nodo = (NodoTrie *)malloc(sizeof(NodoTrie)); // se reserva memoria para el nodo
+            if(palabra[i+1] == '\0'){ // si el siguiente caracter es el fin del string
+                nodo->palabra = palabra; // se asigna la palabra para marcar la letra final
+                nodo->contrasena = contrasenaCif; // se guarda la contraseña cifrada en el caracter final
+            }
+            else{ // si no es el caracter final
+                nodo->contrasena = NULL; //la contraseña y palabra quedan como nulos
+                nodo->palabra = NULL;
+            }
+            nodo->hijos = map_create(is_equal_str); // se crea el mapa de hijos
+            map_insert(actual->hijos, palabra[i], nodo); // en los hijos del actual se ingresa el nodo que acabamos de crear
+        }
+        actual = map_search(actual->hijos, palabra[i]); // si la letra se encontró entre los hijos del actual, actual se traslada ahi
+        i++; // se aumenta el contador
+    }
+    return;
+}
+
+List* searchTrie(NodoTrie* raiz, char *palabra){
+    int i = 0; // se inicia el contador
+    NodoTrie* actual  = raiz;
+    while(palabra[i] != '\0'){ // se recorre la palabra
+        if(strcmp(actual->palabra, palabra) == 0) return actual->contrasena; // si el caracter actual tiene la palabra del caracter final y coincide con la que se busca, se retorna la contrasena
+        if(map_search(actual->hijos, palabra[i]) == NULL) return NULL; // si alguna de las letras no está en el Trie, la palabra entera no está
+        actual = map_search(actual->hijos, palabra[i]); // se traslada al hijo que coincida con la letra actual
+        i++; // se aumenta el contador
+    }
+    return NULL; // si se recorre la palabra entera sin terminar la ejecucion se retorna nulo
+}
+
+void borrarTrie(NodoTrie* nodo){ // esta funcion borra todo el Trie
+    if(nodo == NULL) return; // si el nodo ya es nulo se retorna la funcion
+    if(nodo->hijos != NULL){ //mientras aun haya hijos
+        MapPair* par = map_first(nodo->hijos); // se recorre la lista de hijos
+        while(par != NULL){ //se recorren los hijos
+            NodoTrie* aux = (NodoTrie*)par->value;
+            borrarTrie(aux); // se usa la funcion recursivamente para eliminar los hijos desde las hojas hasta la raiz
+
+            par = map_next(nodo->hijos);
+        }
+        
+        map_clean(nodo->hijos); // con el mapa de hijos vacio se ejecuta un clean en el mapa
+        free(nodo->hijos); // y se libera la memoria del mapa
+    }
+
+    if(nodo->contrasena != NULL) free(nodo->contrasena); // si el nodo tiene contraseña se libera la memoria dinamica
+
+    free(nodo); // finalmente se libera la memoria total del nodo.
+
+}
+
+char* encriptar(char* contrasena){ //esta funcion recibe una contraseña y la retorna cifrada
+    int i = 0; //se incia un contador
+    char* contrasenaCifrada = malloc(strlen(contrasena) + 1); // se reserva memoria para la contraseña cifrada, el tamaño es el mismo que la contraseña original más uno para el caracter nulo
+    while(contrasena[i] != '\0'){ // mientras no se llegue al fin del string
+        char caracterCif = contrasena[i] ^ claveHex; // se hace un desplazamiento de bytes con una constante hexadecimal 
+        sprintf(&contrasenaCifrada[i], "%02X", caracterCif); // el resultado del desplazamiento se guarda en formato hexadecimal de 2 caracteres
+        i++; // se aumenta el indice en 1 para revisar el siguiente caracter
+    }
+    contrasenaCifrada[i*2] = '\0'; // al final del string se añade el caracter nulo
+    return contrasenaCifrada; // se retorna la contraseña cifrada
+}
+
+char* desencriptar(char* contrasenaCifrada){ // esta funcion recibe una contraseña cifrada y devuelve la contraseña original
+    char* contrasena = malloc(strlen(contrasenaCifrada) / 2 + 1); //se reserva memoria para la mitad del tamaño del str + el caracter nulo
+    if(contrasena == NULL) return NULL; // si falla la reserva de memoria se termina la funcion
+    int tamano = strlen(contrasenaCifrada); // se toma el tamaño del str cifrado
+    int k = 0; // y se inicia un indice en 0 para armar la cadena original
+    for(int i = 0; i < tamano; i += 2){ //se recorre la cadena cifrada de 2 en 2
+        char carCif[3]; // se crea una cadena de 3 caracteres
+        carCif[0] = contrasenaCifrada[i]; //los primeros 2 son los caracteres en hexadecimal y el tercero es el caracter nulo
+        carCif[1] = contrasenaCifrada[i + 1];
+        carCif[2] = '\0';
+
+        unsigned int valorCif; // se crea una variable para guardar los valores resultantes del desplazamiento de bytes original
+        sscanf(carCif, "%X", &valorCif);
+
+        contrasena[k] = (char)(valorCif ^ claveHex); // usando la clave hexadecimal se revierten al caracter original y se ingresa el caracter en un string
+        k++; // se aumenta este indice por cada caracter añadido
+    }
+    contrasena[k] = '\0'; //se añade el caracter nulo al final del string
+    return contrasena; // se retorna la contrasena original
+}
 
 void crearUsuario(List* listaUsuario, Map* mapa){
     char nombre[50]; // nombre de usuario
@@ -120,7 +222,7 @@ void LeerArchivo(List* listaUsuario, Map* mapa){
     }
 
     char** campos;
-    while((campos = leer_linea_csv(archivo, ",")) != NULL){ // por cada linea en el csv
+    while((campos = leer_linea_csv(archivo, ',')) != NULL){ // por cada linea en el csv
         if(campos[0] == NULL || campos[1] == NULL) continue; // Si la linea no tiene al usuario o la clave maestra, se salta
 
         char* usuario = campos[0]; // el primer campo es el usuario
@@ -191,41 +293,6 @@ void guardarArchivo(List* listaUsuario, Map* mapa){
 
 }
 
-
-
-char encriptar(char* contrasena){ //esta funcion recibe una contraseña y la retorna cifrada
-    int i = 0; //se incia un contador
-    char* contrasenaCifrada = malloc(strlen(contrasena) + 1); // se reserva memoria para la contraseña cifrada, el tamaño es el mismo que la contraseña original más uno para el caracter nulo
-    while(contrasena[i] != '\0'){ // mientras no se llegue al fin del string
-        char caracterCif = contrasena[i] ^ claveHex; // se hace un desplazamiento de bytes con una constante hexadecimal 
-        sprintf(&contrasenaCifrada[i], "%02X", caracterCif); // el resultado del desplazamiento se guarda en formato hexadecimal de 2 caracteres
-        i++; // se aumenta el indice en 1 para revisar el siguiente caracter
-    }
-    contrasenaCifrada[i*2] = '\0'; // al final del string se añade el caracter nulo
-    return contrasenaCifrada; // se retorna la contraseña cifrada
-}
-
-char desencriptar(char* contrasenaCifrada){ // esta funcion recibe una contraseña cifrada y devuelve la contraseña original
-    char* contrasena = malloc(strlen(contrasenaCifrada) / 2 + 1); //se reserva memoria para la mitad del tamaño del str + el caracter nulo
-    if(contrasena == NULL) return NULL; // si falla la reserva de memoria se termina la funcion
-    int tamano = strlen(contrasenaCifrada); // se toma el tamaño del str cifrado
-    int k = 0; // y se inicia un indice en 0 para armar la cadena original
-    for(int i = 0; i < tamano; i += 2){ //se recorre la cadena cifrada de 2 en 2
-        char carCif[3]; // se crea una cadena de 3 caracteres
-        carCif[0] = contrasenaCifrada[i]; //los primeros 2 son los caracteres en hexadecimal y el tercero es el caracter nulo
-        carCif[1] = contrasenaCifrada[i + 1];
-        carCif[2] = '\0';
-
-        unsigned int valorCif; // se crea una variable para guardar los valores resultantes del desplazamiento de bytes original
-        sscanf(carCif, "%X", &valorCif);
-
-        contrasena[k] = (char)(valorCif ^ claveHex); // usando la clave hexadecimal se revierten al caracter original y se ingresa el caracter en un string
-        k++; // se aumenta este indice por cada caracter añadido
-    }
-    contrasena[k] = '\0'; //se añade el caracter nulo al final del string
-    return contrasena; // se retorna la contrasena original
-}
-
 List* iniciarSesion(List * listaUsuario, Map* mapaContras){ // esta funcion recibe la lista de usuarios y el mapa de contrasenas
     char usuario[50]; 
     printf("Ingrese su nombre de usuario: ");
@@ -274,73 +341,8 @@ List* iniciarSesion(List * listaUsuario, Map* mapaContras){ // esta funcion reci
     printf("Usuario no encontrado.\n"); // si el usuario nunca se encontró entonces se le avisa al usuario
 }
 
-int is_equal_str(char dato1, char dato2){
-    return strcmp(dato1, dato2); // funcion para comparar strings para el mapa
-}
 
-NodoTrie* crearTrie(){ // se crea un Trie utilizando la raiz
-    NodoTrie* raiz;
-    raiz = (NodoTrie *)malloc(sizeof(NodoTrie)); // se reserva memoria
-    raiz->hijos = map_create(is_equal_str); // se crea el mapa de hijos
-    raiz->contrasena = NULL; // se establece la contrasena en NULL
-    return raiz;
-}
 
-void addTrie(NodoTrie *raiz, char *palabra, char* contrasenaCif){ // con esta funcion se añaden palabras al Trie
-    int i = 0; // se usa un contador para recorrer la palabra
-    NodoTrie* actual = raiz; // se inicia desde la raiz
-    while(palabra[i] != '\0'){ // hasta encontrar el caracter nulo
-        if(map_search(actual->hijos, palabra[i]) == NULL){ // si la letra que se busca no está en el mapa de hijos del nodo actual
-            NodoTrie * nodo = (NodoTrie *)malloc(sizeof(NodoTrie)); // se reserva memoria para el nodo
-            if(palabra[i+1] == '\0'){ // si el siguiente caracter es el fin del string
-                nodo->palabra = palabra; // se asigna la palabra para marcar la letra final
-                nodo->contrasena = contrasenaCif; // se guarda la contraseña cifrada en el caracter final
-            }
-            else{ // si no es el caracter final
-                nodo->contrasena = NULL; //la contraseña y palabra quedan como nulos
-                nodo->palabra = NULL;
-            }
-            nodo->hijos = map_create(is_equal_str); // se crea el mapa de hijos
-            map_insert(actual->hijos, palabra[i], nodo); // en los hijos del actual se ingresa el nodo que acabamos de crear
-        }
-        actual = map_search(actual->hijos, palabra[i]); // si la letra se encontró entre los hijos del actual, actual se traslada ahi
-        i++; // se aumenta el contador
-    }
-    return;
-}
-
-List* searchTrie(NodoTrie* raiz, char *palabra){
-    int i = 0; // se inicia el contador
-    NodoTrie* actual  = raiz;
-    while(palabra[i] != '\0'){ // se recorre la palabra
-        if(strcmp(actual->palabra, palabra) == 0) return actual->contrasena; // si el caracter actual tiene la palabra del caracter final y coincide con la que se busca, se retorna la contrasena
-        if(map_search(actual->hijos, palabra[i]) == NULL) return NULL; // si alguna de las letras no está en el Trie, la palabra entera no está
-        actual = map_search(actual->hijos, palabra[i]); // se traslada al hijo que coincida con la letra actual
-        i++; // se aumenta el contador
-    }
-    return NULL; // si se recorre la palabra entera sin terminar la ejecucion se retorna nulo
-}
-
-void borrarTrie(NodoTrie* nodo){ // esta funcion borra todo el Trie
-    if(nodo == NULL) return; // si el nodo ya es nulo se retorna la funcion
-    if(nodo->hijos != NULL){ //mientras aun haya hijos
-        MapPair* par = map_first(nodo->hijos); // se recorre la lista de hijos
-        while(par != NULL){ //se recorren los hijos
-            NodoTrie* aux = (NodoTrie*)par->value;
-            borrarTrie(aux); // se usa la funcion recursivamente para eliminar los hijos desde las hojas hasta la raiz
-
-            par = map_next(nodo->hijos);
-        }
-        
-        map_clean(nodo->hijos); // con el mapa de hijos vacio se ejecuta un clean en el mapa
-        free(nodo->hijos); // y se libera la memoria del mapa
-    }
-
-    if(nodo->contrasena != NULL) free(nodo->contrasena); // si el nodo tiene contraseña se libera la memoria dinamica
-
-    free(nodo); // finalmente se libera la memoria total del nodo.
-
-}
 
 void mostrarPaginas(List* contrasenas){
     Contrasena* aux = list_first(contrasenas); // se recorre la lista de paginas/contraseñas
