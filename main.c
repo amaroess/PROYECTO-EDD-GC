@@ -375,7 +375,7 @@ void mostrarContrasena(NodoTrie* trieContrasena){
 
 Map* cargarPalabras(){ // esta funcion carga el archivo con las 100 contraseñas mas comunes y lo guarda en una tabla hash
     Map* palabrasFiltradas = map_create(is_equal_str);
-    FILE *archivo = fopen("contrasenas.csv", "r");
+    FILE *archivo = fopen("data/contrasenas.csv", "r");
     if(archivo == NULL){
         printf("No se encontró el archivo.");
         return NULL;
@@ -429,7 +429,7 @@ void eliminarPassword(List* listaPassword, NodoTrie* raizTrie){
     printf("Ingrese el nombre de la página o servicio del que desea eliminar su contraseña:\n");
     scanf("%20s", pagina); // se lee el nombre del servicio
 
-    char* contrasenaCif = searchTrie(raizTrie, pagina);
+    char* contrasenaCif = searchTrie(raizTrie, pagina); //se valida la existencia del servicio con el Trie
     if(contrasenaCif == NULL){
         printf("La página o servicio '%s' no ha sido registrada\n", pagina);
         return; // se detiene la funcion si el servicio no existía
@@ -454,14 +454,14 @@ void eliminarPassword(List* listaPassword, NodoTrie* raizTrie){
 
 
 void sesionIniciada(List* contrasenasUsuario, NodoTrie* raizTrie){ // esta funcion le muestra al usuario el menú despues de iniciar sesion
-    printf("Bienvenido a su gestor de contrasenas.\n");
-    printf("1) Anadir una Contrasena.\n");
-    printf("2) Eliminar una Contrasena.\n");
-    printf("3) Ver todas las paginas registradas.\n");
-    printf("4) Cerrar Sesion.\n");
     char opcion;
     do{
-        scanf("%s", opcion);
+        printf("Bienvenido a su gestor de contrasenas.\n");
+        printf("1) Anadir una Contrasena.\n");
+        printf("2) Eliminar una Contrasena.\n");
+        printf("3) Ver todas las paginas registradas.\n");
+        printf("4) Cerrar Sesion.\n");
+        scanf(" %c", &opcion);
         switch(opcion){
             case '1':
                 AgregarPassword(contrasenasUsuario, raizTrie);
@@ -492,18 +492,20 @@ int main()
     List* listaUsuarios = list_create(); // se crean la lista de usuarios y mapa de contraseñas
     Map* mapaContrasenas = map_create(is_equal_str);
     LeerArchivo(listaUsuarios, mapaContrasenas); // se llenan con los datos del archivo
+    List* contrasenasUsuario = list_create(); //se crea una lista de contraseñas para el usuario que iniciara sesion
     char dato;
-    printf("1) Iniciar Sesion.\n");
-    printf("2) Crear Usuario\n");
-    printf("3) Eliminar Usuario\n");
-    printf("4) Salir.\n");
+    
 
     do{
+        printf("1) Iniciar Sesion.\n");
+        printf("2) Crear Usuario\n");
+        printf("3) Eliminar Usuario\n");
+        printf("4) Salir.\n");
         printf("Ingrese su opcion:\n");
-        scanf("%s", dato);
+        scanf(" %c", &dato);
         switch(dato){
             case '1':
-                List* contrasenasUsuario = list_create(); // se obtiene la lista de contraseñas del usuario 
+                // se obtiene la lista de contraseñas del usuario 
                 contrasenasUsuario = iniciarSesion(listaUsuarios, mapaContrasenas);
                 if(contrasenasUsuario != NULL){ // se añade cada contraseña en el trie
                     NodoTrie* raizUsuario = crearTrie();
@@ -521,7 +523,6 @@ int main()
                 guardarArchivo(listaUsuarios, mapaContrasenas); // cuando finaliza la creacion de usuario este se añade en el archivo
                 break;
             case '3':
-                List* contrasenasUsuario = list_create();
                 contrasenasUsuario = iniciarSesion(listaUsuarios, mapaContrasenas);
                 if(contrasenasUsuario != NULL){
                     NodoTrie* raizUsuario = crearTrie();
@@ -534,12 +535,13 @@ int main()
                 }
                 break;
             case '4':
-                printf("Saliendo del programa...");
+                printf("Saliendo del programa...\n");
                 break;
             default:
-                printf("Ingrese un caracter valido.");
+                printf("Ingrese un caracter valido.\n");
                 break;
         }
     } while(dato != '4');
+    printf("Gracias por usar el gestor de contrasenas, nos vemos!");
     return 0;
 }
